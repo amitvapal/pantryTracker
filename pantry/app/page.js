@@ -1,64 +1,94 @@
-import { Stack,Box, Typography } from "@mui/material";
+'use client'
+import Image from 'next/image'
+import {useState, useEffect} from 'react'
+import { Stack,Box, Typography, Modal, TextField } from "@mui/material";
+import { firestore } from '@/firebase'
+import { collection, query, getDocs, deleteDoc } from 'firebase/firestore'
 
-const item = [
-  'tomato',
-  'potato',
-  'onion',
-  'garlic',
-  'ginger',
-  'carrot',
-  'lettuce',
-  'cucumber',
-  'bell pepper',
-  'broccoli',
-  'cauliflower',
-  'spinach',
-  'kale'
+export default function Home(){
+  const [inventory, setInventory] = useState([])
+  const [open, setOpen] = useState(false)
+  const [itemName, setItemName] = useState('')
 
-]
+  const updateInventory = async () => {
+    const snapshot = query(collection(firestore, 'inventory'))
+    const docs = await getDocs(snapshot)
+    const inventoryList = []
+    docs.forEach(doc => {
+      inventoryList.push({
+        name: doc.id,
+        ...doc.data(),
+      })
+    })
+    setInventory(inventoryList)
 
-export default function Home() {
-  return (
-    <Box
-      width="100vw"
-      height="100vh"
-      display="flex"
-      justifyContent="center"
-      flexDirection={'column'}
-      alignItems="center"
+  }
+
+  const addItem = async (item) => {
+    const docRef = doc(collection(firestore, 'inventory'), item)
+    const docSnap = await getDoc(docRef)
+
+    if(docSnap.exists()){
+      const {quantity} = docSnap.data()
+      await updateDoc(docRef, {
+        quantity: quantity + 1
+      })
+    }
+    else{
+      await setDoc(docRef, {
+        quantity: 1
+      })
+    }
+    await updateInventory()
+  }
+
+  useEffect(() =>{
+    updateInventory()
+  }, [])
+
+  const handleOpen = () => setOpen(true)
+  const handleClose = () => setOpen(false) 
+
+  return(
+    <Box 
+    width="100vw" 
+    height="100vh" 
+    display="flex" 
+    justifyContent="center" 
+    alignItems="center" 
+    gap = {2}
     >
-      <Box border={'1px solid #333'}>
-      <Box 
-      width = "800px" height = "100px" 
-      bgcolor = {'#ADD8E6'} 
-      display={'flex'} 
-      justifyContent={'center'} 
-      alightItems={'center'}
+      <Modal open = {open} close = {handleClose}> 
+        <Box 
+        postion = "absolute" 
+        top = '50%' 
+        left = '50%' 
+        transform="translate(-50%, -50%)" 
+        width = {400} 
+        bgcolor = "white" 
+        border = "2px solid #000"
+        boxShadow = {24}
+        p={4}
+        display = "flex"
+        flexDirection = "column"
+        gap = {3}
+        >
+          <Typography variant="h2">Add Item</Typography>
+          <Stack width = "100%" direction = "row" spacing = {2}> 
+            <TextField> </TextField>
+
+
+          </Stack>
+        
+          
+
+        </Box>
+        
+
+      </Modal>
+
+      <Typography variant="h1">Inventory Management</Typography>
       
-      >
-        <Typography variant = "h1" color = {'#333'} align = "center">Pantry Items</Typography>
-      </Box>
-      <Stack width="800px" height="300px" spacing={2} overflow="auto">
-        {item.map((item) => (
-          <Box
-            key={item}
-            width="100%"
-            height="300px"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            bgcolor="primary.main"
-            color="white"
-            borderRadius={16}
-            border="1px solid white" // Add this line to set the white border
-          >
-            <Typography variant="h3" >
-              {item.charAt(0).toUpperCase() + item.slice(1)}
-            </Typography>
-          </Box>
-        ))}
-      </Stack>
-      </Box>
     </Box>
-  );
+  )
 }
